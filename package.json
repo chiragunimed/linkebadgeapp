@@ -1,0 +1,26 @@
+{
+  "name": "linkbadgeapp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "linkedin.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chiragunimed/linkebadgeapp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chiragunimed/linkebadgeapp/issues"
+  },
+  "homepage": "https://github.com/chiragunimed/linkebadgeapp#readme",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "sharp": "^0.34.3"
+  }
+}
