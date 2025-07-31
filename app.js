@@ -6,6 +6,7 @@ const sharp = require("sharp");
 const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
+require('dotenv').config();
 
 dotenv.config();
 const app = express();
