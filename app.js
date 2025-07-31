@@ -1,3 +1,4 @@
+require('dotenv').config(); // ⬅️ MUST BE AT THE TOP
 const express = require("express");
 const session = require("express-session");
 const axios = require("axios");
@@ -6,11 +7,15 @@ const sharp = require("sharp");
 const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
-require('dotenv').config();
 
-dotenv.config();
+
+const express = require("express");
+const session = require("express-session");
+
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Middleware
 
 app.use(session({
   secret: "badge_secret_key",
@@ -18,19 +23,31 @@ app.use(session({
   saveUninitialized: true,
 }));
 
-app.use(express.static("public"));
+app.use(express.static("public")); // Serves base_badge.png
 app.use(express.json());
 
 // Step 1: Start LinkedIn OAuth from Mailchimp email (e.g. /auth/linkedin?email=abc@example.com)
 app.get("/auth/linkedin", (req, res) => {
   const { email } = req.query;
+  if (!email) return res.status(400).send("Missing email");
+
   req.session.email = email;
 
   const scope = ["openid", "profile", "email", "w_member_social"].join(" ");
   const redirectUri = encodeURIComponent(process.env.LINKEDIN_REDIRECT_URI);
-  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(scope)}&state=secureState123`;
+  const clientId = process.env.LINKEDIN_CLIENT_ID;
+
+  if (!clientId || !redirectUri) {
+    return res.status(500).send("Missing LinkedIn credentials in .env");
+  }
+
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(scope)}&state=secureState123`;
 
   res.redirect(authUrl);
+});
+// ✅ Start server
+app.listen(port, () => {
+  console.log(`✅ Server running on http://localhost:${port}`);
 });
 
 // Step 2: LinkedIn Callback
