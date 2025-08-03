@@ -1,52 +1,40 @@
-require('dotenv').config(); // ⬅️ MUST BE AT THE TOP
+// server.js
+require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
 const axios = require("axios");
-const dotenv = require("dotenv");
-const sharp = require("sharp");
 const fetch = require("node-fetch");
+const sharp = require("sharp");
 const fs = require("fs");
 const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
+app.use(express.static("public"));
+app.use(express.json());
 
 app.use(session({
-  secret: "badge_secret_key",
+  secret: process.env.SESSION_SECRET || "badge_secret_key",
   resave: false,
   saveUninitialized: true,
 }));
 
-app.use(express.static("public")); // Serves base_badge.png
-app.use(express.json());
-
-// Step 1: Start LinkedIn OAuth from Mailchimp email (e.g. /auth/linkedin?email=abc@example.com)
+// Step 1: Start LinkedIn OAuth
 app.get("/auth/linkedin", (req, res) => {
   const { email } = req.query;
   if (!email) return res.status(400).send("Missing email");
 
   req.session.email = email;
-
   const scope = ["openid", "profile", "email", "w_member_social"].join(" ");
   const redirectUri = encodeURIComponent(process.env.LINKEDIN_REDIRECT_URI);
   const clientId = process.env.LINKEDIN_CLIENT_ID;
 
-  if (!clientId || !redirectUri) {
-    return res.status(500).send("Missing LinkedIn credentials in .env");
-  }
-
   const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(scope)}&state=secureState123`;
-
   res.redirect(authUrl);
 });
-// ✅ Start server
-app.listen(port, () => {
-  console.log(`✅ Server running on http://localhost:${port}`);
-});
 
-// Step 2: LinkedIn Callback
+// Step 2: LinkedIn callback
 app.get("/auth/linkedin/callback", async (req, res) => {
   const code = req.query.code;
   try {
@@ -63,41 +51,37 @@ app.get("/auth/linkedin/callback", async (req, res) => {
 
     const accessToken = tokenRes.data.access_token;
 
-    // Step 3: Get profile info
     const userInfoRes = await axios.get("https://api.linkedin.com/v2/userinfo", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const profile = userInfoRes.data;
-    const name = profile.name || profile.given_name || "Guest";
-
-    const imageUrl = profile.picture?.[0]?.data?.url || profile.picture || null;
+    const imageUrl = profile.picture || profile.picture_large;
     if (!imageUrl) throw new Error("Profile image not found");
 
-    // Step 4: Download image & overlay
     const userImageRes = await fetch(imageUrl);
     const userBuffer = await userImageRes.buffer();
+    const badgeBuffer = fs.readFileSync(path.join(__dirname, process.env.BADGE_IMAGE_PATH));
 
-    const badgeBuffer = fs.readFileSync(process.env.BADGE_IMAGE_PATH);
-    const compositeImagePath = `./output/${profile.sub}_badge.png`;
+    const compositeImagePath = `./public/output_${profile.sub}.png`;
     const outputBuffer = await sharp(badgeBuffer)
-      .composite([
-        { input: userBuffer, top: 50, left: 50, blend: "over" }
-      ])
+      .composite([{ input: userBuffer, top: 50, left: 50 }])
       .resize(800)
       .png()
       .toBuffer();
 
     fs.writeFileSync(compositeImagePath, outputBuffer);
 
-    // Step 5: Upload to LinkedIn
     const registerUploadRes = await axios.post(
       "https://api.linkedin.com/v2/assets?action=registerUpload",
       {
         registerUploadRequest: {
           recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
           owner: `urn:li:person:${profile.sub}`,
-          serviceRelationships: [{ relationshipType: "OWNER", identifier: "urn:li:userGeneratedContent" }],
+          serviceRelationships: [{
+            relationshipType: "OWNER",
+            identifier: "urn:li:userGeneratedContent",
+          }],
         },
       },
       { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -110,7 +94,6 @@ app.get("/auth/linkedin/callback", async (req, res) => {
       headers: { "Content-Type": "image/png" },
     });
 
-    // Step 6: Post to feed
     await axios.post(
       "https://api.linkedin.com/v2/ugcPosts",
       {
@@ -118,11 +101,9 @@ app.get("/auth/linkedin/callback", async (req, res) => {
         lifecycleState: "PUBLISHED",
         specificContent: {
           "com.linkedin.ugc.ShareContent": {
-            shareCommentary: {
-              text: `Excited to attend! #TiE #Networking`,
-            },
+            shareCommentary: { text: "Excited to attend! #TiE #Networking" },
             shareMediaCategory: "IMAGE",
-            media: [{ status: "READY", description: { text: "Badge" }, media: asset, title: { text: "My Badge" } }],
+            media: [{ status: "READY", media: asset }],
           },
         },
         visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
@@ -130,8 +111,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
-    res.send(`<h2>✅ Badge posted to LinkedIn, ${name}!</h2>`);
-
+    res.send(`<h2>✅ Badge posted to LinkedIn!</h2><img src="/output_${profile.sub}.png" width="300">`);
   } catch (err) {
     console.error("OAuth/Posting error:", err.response?.data || err.message);
     res.status(500).send("Something went wrong.");
