@@ -98,6 +98,26 @@ app.get("/auth/linkedin/callback", async (req, res) => {
       headers: { "Content-Type": "image/png" },
     });
 
+//start of original code 
+    // await axios.post(
+    //   "https://api.linkedin.com/v2/ugcPosts",
+    //   {
+    //     author: `urn:li:person:${profile.sub}`,
+    //     lifecycleState: "PUBLISHED",
+    //     specificContent: {
+    //       "com.linkedin.ugc.ShareContent": {
+    //         shareCommentary: { text: "Excited to attend! Panorama India" },
+    //         shareMediaCategory: "IMAGE",
+    //         media: [{ status: "READY", media: asset }],
+    //       },
+    //     },
+    //     visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
+    //   },
+    //   { headers: { Authorization: `Bearer ${accessToken}` } }
+    // );
+//end of original code 
+//disable the testing block and enable the original code press ctrl / for block unblock bulk 
+    // 🔴 BEGIN TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
     await axios.post(
       "https://api.linkedin.com/v2/ugcPosts",
       {
@@ -105,15 +125,28 @@ app.get("/auth/linkedin/callback", async (req, res) => {
         lifecycleState: "PUBLISHED",
         specificContent: {
           "com.linkedin.ugc.ShareContent": {
-            shareCommentary: { text: "Excited to attend! #TiE #Networking" },
+            shareCommentary: {
+              text: "Excited to be at Panorama Fest"
+            },
             shareMediaCategory: "IMAGE",
-            media: [{ status: "READY", media: asset }],
-          },
+            media: [
+              {
+                status: "READY",
+                media: asset,
+                title: {
+                  text: "Test Badge"
+                }
+              }
+            ]
+          }
         },
-        visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
+        visibility: {
+          "com.linkedin.ugc.MemberNetworkVisibility": "CONNECTIONS"
+        }
       },
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
+    // 🔴 END TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
 
     res.send(`<h2>✅ Badge posted to LinkedIn!</h2><img src="/output_${profile.sub}.png" width="300">`);
   } catch (err) {
