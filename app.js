@@ -26,7 +26,10 @@ app.get("/auth/linkedin", (req, res) => {
   if (!email) return res.status(400).send("Missing email");
 
   req.session.email = email;
-  const scope = ["openid", "profile", "email", "w_member_social"].join(" ");
+  const scope = ['openid', 'profile', 'email', 'w_member_social'].join(' ');
+
+  //or use this >    const scope = ["openid", "profile", "email", "w_member_social"].join(" ");
+  
   const redirectUri = encodeURIComponent(process.env.LINKEDIN_REDIRECT_URI);
   const clientId = process.env.LINKEDIN_CLIENT_ID;
 
