@@ -46,7 +46,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
       params: {
         grant_type: "authorization_code",
         code: code,
-        redirect_uri: process.env.LINKEDIN_REDIRECT_URI,
+        redirect_uri: "https://myweb-w1dx.onrender.com/auth/linkedin/callback", //process.env.LINKEDIN_REDIRECT_URI,
         client_id: process.env.LINKEDIN_CLIENT_ID,
         client_secret: process.env.LINKEDIN_CLIENT_SECRET,
       },
