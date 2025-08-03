@@ -1,5 +1,6 @@
 // server.js
 require("dotenv").config();
+console.log("🔧 BADGE_IMAGE_PATH from env:", process.env.BADGE_IMAGE_PATH);
 const express = require("express");
 const session = require("express-session");
 const axios = require("axios");
@@ -46,7 +47,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
       params: {
         grant_type: "authorization_code",
         code: code,
-        redirect_uri: "https://myweb-w1dx.onrender.com/auth/linkedin/callback", //process.env.LINKEDIN_REDIRECT_URI,
+        redirect_uri: process.env.LINKEDIN_REDIRECT_URI,//"https://myweb-w1dx.onrender.com/auth/linkedin/callback", //process.env.LINKEDIN_REDIRECT_URI,
         client_id: process.env.LINKEDIN_CLIENT_ID,
         client_secret: process.env.LINKEDIN_CLIENT_SECRET,
       },
@@ -87,7 +88,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
       .toBuffer();
 
     const outputBuffer = await sharp(badgeBuffer)
-      .composite([{ input: resizedUserBuffer, top: 900, left: 475 }])
+      .composite([{ input: resizedUserBuffer, top: 820, left: 150 }])
       .png()
       .toBuffer();
 
@@ -123,8 +124,9 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     //     lifecycleState: "PUBLISHED",
     //     specificContent: {
     //       "com.linkedin.ugc.ShareContent": {
-    //         shareCommentary: { text: "Excited to attend! Panorama India" },
-    //         shareMediaCategory: "IMAGE",
+    //         shareCommentary: { text: "Attending Panorama India is a reminder of how culture can unite and inspire. Kudos to the Directors and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian ties. A cultural masterpiece! 🙌🏽 #CelebrateCulture #PanoramaIndia" 
+    //         }, 
+    //          shareMediaCategory: "IMAGE",
     //         media: [{ status: "READY", media: asset }],
     //       },
     //     },
@@ -143,7 +145,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
         specificContent: {
           "com.linkedin.ugc.ShareContent": {
             shareCommentary: {
-              text: "Excited to be at Panorama Fest"
+              text: "Attending Panorama India is a reminder of how culture can unite and inspire. Kudos to the Directors and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian ties. A cultural masterpiece! 🙌🏽 #CelebrateCulture #PanoramaIndia"
             },
             shareMediaCategory: "IMAGE",
             media: [
@@ -151,7 +153,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
                 status: "READY",
                 media: asset,
                 title: {
-                  text: "Test Badge"
+                  text: "Test now"
                 }
               }
             ]
