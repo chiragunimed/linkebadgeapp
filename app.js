@@ -29,7 +29,7 @@ app.get("/auth/linkedin", (req, res) => {
   const scope = ['openid', 'profile', 'email', 'w_member_social'].join(' ');
 
   //or use this >    const scope = ["openid", "profile", "email", "w_member_social"].join(" ");
-  
+
   const redirectUri = encodeURIComponent(process.env.LINKEDIN_REDIRECT_URI);
   const clientId = process.env.LINKEDIN_CLIENT_ID;
 
@@ -40,6 +40,7 @@ app.get("/auth/linkedin", (req, res) => {
 // Step 2: LinkedIn callback
 app.get("/auth/linkedin/callback", async (req, res) => {
   const code = req.query.code;
+
   try {
     const tokenRes = await axios.post("https://www.linkedin.com/oauth/v2/accessToken", null, {
       params: {
@@ -69,11 +70,12 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     const compositeImagePath = `./public/output_${profile.sub}.png`;
 
     const resizedUserBuffer = await sharp(userBuffer)
-       .resize(250, 250) // square and proportional
-       .png()
+      .resize(250, 250) // square and proportional
+      .png()
       .toBuffer();
+
     const outputBuffer = await sharp(badgeBuffer)
-      .composite([{ input: userBuffer, top: 900, left: 475 }])
+      .composite([{ input: resizedUserBuffer, top: 900, left: 475 }])
       .png()
       .toBuffer();
 
@@ -101,7 +103,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
       headers: { "Content-Type": "image/png" },
     });
 
-//start of original code 
+    //start of original code 
     // await axios.post(
     //   "https://api.linkedin.com/v2/ugcPosts",
     //   {
@@ -118,8 +120,8 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     //   },
     //   { headers: { Authorization: `Bearer ${accessToken}` } }
     // );
-//end of original code 
-//disable the testing block and enable the original code press ctrl / for block unblock bulk 
+    //end of original code 
+    //disable the testing block and enable the original code press ctrl / for block unblock bulk 
     // 🔴 BEGIN TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
     await axios.post(
       "https://api.linkedin.com/v2/ugcPosts",
@@ -152,15 +154,16 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     // 🔴 END TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
 
     res.send(`<h2>✅ Badge posted to LinkedIn!</h2><img src="/output_${profile.sub}.png" width="300">`);
-  }
+  } 
   catch (err) {
-  if (err.response) {
-    console.error("OAuth/Posting error response data:", err.response.data);
-  } else {
-    console.error("OAuth/Posting error message:", err.message);
-  //}
-  //res.status(500).send("Something went wrong.");
-}
+    if (err.response) {
+      console.error("OAuth/Posting error response data:", err.response.data);
+      res.status(500).send(`Error: ${JSON.stringify(err.response.data)}`);
+    } else {
+      console.error("OAuth/Posting error message:", err.message);
+      res.status(500).send(`Error: ${err.message}`);
+    }
+  }
 });
 
 app.listen(port, () => {
