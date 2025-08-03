@@ -64,9 +64,13 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     const badgeBuffer = fs.readFileSync(path.join(__dirname, process.env.BADGE_IMAGE_PATH));
 
     const compositeImagePath = `./public/output_${profile.sub}.png`;
+
+    const resizedUserBuffer = await sharp(userBuffer)
+       .resize(250, 250) // square and proportional
+       .png()
+      .toBuffer();
     const outputBuffer = await sharp(badgeBuffer)
-      .composite([{ input: userBuffer, top: 50, left: 50 }])
-      .resize(800)
+      .composite([{ input: userBuffer, top: 900, left: 475 }])
       .png()
       .toBuffer();
 
