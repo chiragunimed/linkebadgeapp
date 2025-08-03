@@ -149,9 +149,15 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     // 🔴 END TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
 
     res.send(`<h2>✅ Badge posted to LinkedIn!</h2><img src="/output_${profile.sub}.png" width="300">`);
-  } catch (err) {
-    console.error("OAuth/Posting error:", err.response?.data || err.message);
-    res.status(500).send("Something went wrong.");
+  }
+  catch (err) {
+  if (err.response) {
+    console.error("OAuth/Posting error response data:", err.response.data);
+  } else {
+    console.error("OAuth/Posting error message:", err.message);
+  }
+  res.status(500).send("Something went wrong.");
+}
   }
 });
 
