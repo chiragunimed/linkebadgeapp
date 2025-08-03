@@ -44,7 +44,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     const tokenRes = await axios.post("https://www.linkedin.com/oauth/v2/accessToken", null, {
       params: {
         grant_type: "authorization_code",
-        code,
+        code: code,
         redirect_uri: process.env.LINKEDIN_REDIRECT_URI,
         client_id: process.env.LINKEDIN_CLIENT_ID,
         client_secret: process.env.LINKEDIN_CLIENT_SECRET,
@@ -158,8 +158,8 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     console.error("OAuth/Posting error response data:", err.response.data);
   } else {
     console.error("OAuth/Posting error message:", err.message);
-  }
-  res.status(500).send("Something went wrong.");
+  //}
+  //res.status(500).send("Something went wrong.");
 }
 });
 
