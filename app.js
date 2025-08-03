@@ -65,7 +65,19 @@ app.get("/auth/linkedin/callback", async (req, res) => {
 
     const userImageRes = await fetch(imageUrl);
     const userBuffer = await userImageRes.buffer();
-    const badgeBuffer = fs.readFileSync(path.join(__dirname, process.env.BADGE_IMAGE_PATH));
+
+    // Added badge image path validation and debug logs
+    const badgeImagePath = process.env.BADGE_IMAGE_PATH;
+    console.log("Badge image path:", badgeImagePath);
+    if (!badgeImagePath) {
+      throw new Error("BADGE_IMAGE_PATH environment variable is not defined");
+    }
+    const fullBadgeImagePath = path.join(__dirname, badgeImagePath);
+    if (!fs.existsSync(fullBadgeImagePath)) {
+      throw new Error(`Badge image file not found at path: ${fullBadgeImagePath}`);
+    }
+
+    const badgeBuffer = fs.readFileSync(fullBadgeImagePath);
 
     const compositeImagePath = `./public/output_${profile.sub}.png`;
 
