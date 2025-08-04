@@ -167,7 +167,10 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     );
     // 🔴 END TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
 
-    res.send(`<h2>✅ Posted. - Thank you for sharing ! - Team Panorama!</h2><img src="/output_${profile.sub}.png" width="300">`);
+    //res.send(`<h2>✅ Posted. - Thank you for sharing ! - Team Panorama</h2><img src="/output_${profile.sub}.png" width="300">`);
+    //or use this one 
+    res.send(`<h2 style="font-size: 14px; font-weight: bold;">✅ Posted. - Thank you for sharing! - Team Panorama</h2><img src="/output_${profile.sub}.png" width="300">`);
+
   } 
   catch (err) {
     if (err.response) {
