@@ -87,8 +87,30 @@ app.get("/auth/linkedin/callback", async (req, res) => {
       .png()
       .toBuffer();
 
+//formating the image border color etc 
+
+const borderWidth = 6; // border thickness
+const borderSvg = `
+  <svg width="${profileSize}" height="${profileSize}">
+    <rect x="0" y="0" width="${profileSize}" height="${profileSize}" 
+      fill="none" stroke="rgb(19, 136, 8)" stroke-width="${borderWidth}" />
+  </svg>
+`;
+
+const profileWithBorder = await sharp(resizedUserBuffer)
+  .composite([
+    {
+      input: Buffer.from(borderSvg),
+      blend: 'over'
+    }
+  ])
+  .png()
+  .toBuffer();
+
+//end of formating 
+
     const outputBuffer = await sharp(badgeBuffer)
-      .composite([{ input: resizedUserBuffer, top: 820, left: 150 }])
+      .composite([{ input: profileWithBorder, top: 820, left: 150 }]) // input: resizedUserBuffer changed to profileWithBorder this variable has the new color overlay on profile pic
       .png()
       .toBuffer();
 
