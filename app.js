@@ -1,6 +1,6 @@
 // server.js
 require("dotenv").config();
-console.log("🔧 BADGE_IMAGE_PATH from env:", process.env.BADGE_IMAGE_PATH);
+console.log("\ud83d\udd27 BADGE_IMAGE_PATH from env:", process.env.BADGE_IMAGE_PATH);
 const express = require("express");
 const session = require("express-session");
 const axios = require("axios");
@@ -28,9 +28,6 @@ app.get("/auth/linkedin", (req, res) => {
 
   req.session.email = email;
   const scope = ['openid', 'profile', 'email', 'w_member_social'].join(' ');
-
-  //or use this >    const scope = ["openid", "profile", "email", "w_member_social"].join(" ");
-
   const redirectUri = encodeURIComponent(process.env.LINKEDIN_REDIRECT_URI);
   const clientId = process.env.LINKEDIN_CLIENT_ID;
 
@@ -46,8 +43,8 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     const tokenRes = await axios.post("https://www.linkedin.com/oauth/v2/accessToken", null, {
       params: {
         grant_type: "authorization_code",
-        code: code,
-        redirect_uri: process.env.LINKEDIN_REDIRECT_URI,//"https://myweb-w1dx.onrender.com/auth/linkedin/callback", //process.env.LINKEDIN_REDIRECT_URI,
+        code,
+        redirect_uri: process.env.LINKEDIN_REDIRECT_URI,
         client_id: process.env.LINKEDIN_CLIENT_ID,
         client_secret: process.env.LINKEDIN_CLIENT_SECRET,
       },
@@ -59,8 +56,9 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     const userInfoRes = await axios.get("https://api.linkedin.com/v2/userinfo", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-// this code from line 62 till line 90 is replaced with another code 
-//functionality change is that if image is not found then write the firstname in bordered box  94 to 144 
+
+    // this code from line 62 till line 90 is replaced with another code 
+    //functionality change is that if image is not found then write the firstname in bordered box  94 to 144 
     // const profile = userInfoRes.data;
     // const imageUrl = profile.picture || profile.picture_large;
     // if (!imageUrl) throw new Error("Profile image not found");
@@ -89,26 +87,63 @@ app.get("/auth/linkedin/callback", async (req, res) => {
     //   .png()
     //   .toBuffer();
 
-
     // remove this code and use 62 to 90 if only image is required zzzz from 94 to 144
-const profile = userInfoRes.data;
-const imageUrl = profile.picture || profile.picture_large;
-const profileSize = 250;
+    const profile = userInfoRes.data;
+    const imageUrl = profile.picture || profile.picture_large;
+    const profileSize = 250;
 
-let resizedUserBuffer;
+    let resizedUserBuffer;
 
-if (imageUrl) {
-  try {
-    const userImageRes = await fetch(imageUrl);
-    const userBuffer = await userImageRes.buffer();
+    if (imageUrl) {
+      try {
+        const userImageRes = await fetch(imageUrl);
+        const userBuffer = await userImageRes.buffer();
 
-    const imageWithoutBorder = await sharp(userBuffer)
-      .resize(profileSize, profileSize, { fit: 'cover' })
-      .png()
-      .toBuffer();
+        const imageWithoutBorder = await sharp(userBuffer)
+          .resize(profileSize, profileSize, { fit: 'cover' })
+          .png()
+          .toBuffer();
 
-    // Add green border SVG
-    const borderWidth = 6;
+        // Add green border SVG
+        const borderWidth = 6;
+        const borderSvg = `
+          <svg width="${profileSize}" height="${profileSize}">
+            <rect x="0" y="0" width="${profileSize}" height="${profileSize}" 
+              fill="none" stroke="rgb(19, 136, 8)" stroke-width="${borderWidth}" />
+          </svg>
+        `;
+
+        resizedUserBuffer = await sharp(imageWithoutBorder)
+          .composite([{ input: Buffer.from(borderSvg), blend: 'over' }])
+          .png()
+          .toBuffer();
+
+      } catch (err) {
+        console.warn("Failed to load image, fallback to name box:", err);
+      }
+    }
+
+    if (!resizedUserBuffer) {
+      // const nameText = `${profile.localizedFirstName || ''} ${profile.localizedLastName || ''}`.trim() || "Guest"; // this is first lastname if not found return Guest
+      const nameText = (profile.localizedFirstName || '').trim() || "Guest";
+      const nameSvg = `
+        <svg width="${profileSize}" height="${profileSize}">
+          <style>
+            .text { fill: rgb(19,136,8); font-size: 30px; font-family: Arial, sans-serif; font-weight: bold; dominant-baseline: middle; text-anchor: middle; }
+          </style>
+          <rect x="0" y="0" width="${profileSize}" height="${profileSize}" fill="white" stroke="rgb(19,136,8)" stroke-width="6" />
+          <text x="50%" y="50%" class="text">${nameText}</text>
+        </svg>
+      `;
+
+      resizedUserBuffer = await sharp(Buffer.from(nameSvg))
+        .png()
+        .toBuffer();
+    }
+
+    // end of new code zzzz 
+    //formating the image border color etc 
+    const borderWidth = 6; // border thickness
     const borderSvg = `
       <svg width="${profileSize}" height="${profileSize}">
         <rect x="0" y="0" width="${profileSize}" height="${profileSize}" 
@@ -116,56 +151,29 @@ if (imageUrl) {
       </svg>
     `;
 
-    resizedUserBuffer = await sharp(imageWithoutBorder)
-      .composite([{ input: Buffer.from(borderSvg), blend: 'over' }])
+    const profileWithBorder = await sharp(resizedUserBuffer)
+      .composite([
+        {
+          input: Buffer.from(borderSvg),
+          blend: 'over'
+        }
+      ])
       .png()
       .toBuffer();
 
-  } catch (err) {
-    console.warn("Failed to load image, fallback to name box:", err);
-  }
-}
-
-if (!resizedUserBuffer) {
- // const nameText = `${profile.localizedFirstName || ''} ${profile.localizedLastName || ''}`.trim() || "Guest"; // this is first lastname if not found return Guest
-const nameText = (profile.localizedFirstName || '').trim() || "Guest";
-  const nameSvg = `
-    <svg width="${profileSize}" height="${profileSize}">
-      <style>
-        .text { fill: rgb(19,136,8); font-size: 30px; font-family: Arial, sans-serif; font-weight: bold; dominant-baseline: middle; text-anchor: middle; }
-      </style>
-      <rect x="0" y="0" width="${profileSize}" height="${profileSize}" fill="white" stroke="rgb(19,136,8)" stroke-width="6" />
-      <text x="50%" y="50%" class="text">${nameText}</text>
-    </svg>
-  `;
-
-  resizedUserBuffer = await sharp(Buffer.from(nameSvg))
-    .png()
-    .toBuffer();
-}
-
-    // end of new code zzzz 
-//formating the image border color etc 
-
-const borderWidth = 6; // border thickness
-const borderSvg = `
-  <svg width="${profileSize}" height="${profileSize}">
-    <rect x="0" y="0" width="${profileSize}" height="${profileSize}" 
-      fill="none" stroke="rgb(19, 136, 8)" stroke-width="${borderWidth}" />
-  </svg>
-`;
-
-const profileWithBorder = await sharp(resizedUserBuffer)
-  .composite([
-    {
-      input: Buffer.from(borderSvg),
-      blend: 'over'
+    //end of formating 
+    const badgeImagePath = process.env.BADGE_IMAGE_PATH;
+    console.log("Badge image path:", badgeImagePath);
+    if (!badgeImagePath) {
+      throw new Error("BADGE_IMAGE_PATH environment variable is not defined");
     }
-  ])
-  .png()
-  .toBuffer();
+    const fullBadgeImagePath = path.join(__dirname, badgeImagePath);
+    if (!fs.existsSync(fullBadgeImagePath)) {
+      throw new Error(`Badge image file not found at path: ${fullBadgeImagePath}`);
+    }
 
-//end of formating 
+    const badgeBuffer = fs.readFileSync(fullBadgeImagePath);
+    const compositeImagePath = `./public/output_${profile.sub}.png`;
 
     const outputBuffer = await sharp(badgeBuffer)
       .composite([{ input: profileWithBorder, top: 820, left: 150 }]) // input: resizedUserBuffer changed to profileWithBorder this variable has the new color overlay on profile pic
@@ -204,7 +212,7 @@ const profileWithBorder = await sharp(resizedUserBuffer)
     //     lifecycleState: "PUBLISHED",
     //     specificContent: {
     //       "com.linkedin.ugc.ShareContent": {
-    //         shareCommentary: { text: "Attending Panorama India is a reminder of how culture can unite and inspire. Kudos to the Directors and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian ties. A cultural masterpiece! 🙌🏽 #CelebrateCulture #PanoramaIndia" 
+    //         shareCommentary: { text: "Attending Panorama India is a reminder of how culture can unite and inspire. Kudos to the Directors and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian ties. A cultural masterpiece! \ud83d\ude4c\ud83c\udf1f #CelebrateCulture #PanoramaIndia" 
     //         }, 
     //          shareMediaCategory: "IMAGE",
     //         media: [{ status: "READY", media: asset }],
@@ -216,7 +224,7 @@ const profileWithBorder = await sharp(resizedUserBuffer)
     // );
     //end of original code 
     //disable the testing block and enable the original code press ctrl / for block unblock bulk 
-    // 🔴 BEGIN TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
+    // \ud83d\udd34 BEGIN TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
     await axios.post(
       "https://api.linkedin.com/v2/ugcPosts",
       {
@@ -225,7 +233,7 @@ const profileWithBorder = await sharp(resizedUserBuffer)
         specificContent: {
           "com.linkedin.ugc.ShareContent": {
             shareCommentary: {
-              text: "Attending Panorama India is a reminder of how culture can unite and inspire. Kudos to the Directors and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian ties. A cultural masterpiece! 🙌🏽 #CelebrateCulture #PanoramaIndia"
+              text: "Attending Panorama India is a reminder of how culture can unite and inspire. Kudos to the Directors and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian ties. A cultural masterpiece! \ud83d\ude4c\ud83c\udf1f #CelebrateCulture #PanoramaIndia"
             },
             shareMediaCategory: "IMAGE",
             media: [
@@ -245,24 +253,23 @@ const profileWithBorder = await sharp(resizedUserBuffer)
       },
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
-    // 🔴 END TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
+    // \ud83d\udd34 END TESTING POST ONLY — REMOVE THIS BLOCK FOR PRODUCTION USE
 
-    //res.send(`<h2>✅ Posted. - Thank you for sharing ! - Team Panorama</h2><img src="/output_${profile.sub}.png" width="300">`);
+    //res.send(`<h2>\u2705 Posted. - Thank you for sharing ! - Team Panorama</h2><img src="/output_${profile.sub}.png" width="300">`);
     //or use this one 
-    res.send(`<h2 style="font-size: 14px; font-weight: bold;">✅ Posted. - Thank you for sharing! - Team Panorama</h2><img src="/output_${profile.sub}.png" width="300">`);
+    res.send(`<h2 style="font-size: 14px; font-weight: bold;">\u2705 Posted. - Thank you for sharing! - Team Panorama</h2><img src="/output_${profile.sub}.png" width="300">`);
 
-  } 
-  catch (err) {
+  } catch (err) {
     if (err.response) {
-      console.error("OAuth/Posting error response data:", err.response.data);
+      console.error("OAuth/Posting error response:", err.response.data);
       res.status(500).send(`Error: ${JSON.stringify(err.response.data)}`);
     } else {
-      console.error("OAuth/Posting error message:", err.message);
+      console.error("OAuth/Posting error:", err.message);
       res.status(500).send(`Error: ${err.message}`);
     }
   }
 });
 
 app.listen(port, () => {
-  console.log(`✅ Server running at http://localhost:${port}`);
+  console.log(`\u2705 Server running at http://localhost:${port}`);
 });
