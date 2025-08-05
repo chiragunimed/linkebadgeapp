@@ -66,8 +66,9 @@ app.get("/auth/linkedin/callback", async (req, res) => {
 
     const userImageRes = await fetch(imageUrl);
     const userBuffer = await userImageRes.buffer();
-
+    const profileSize = 250 
     // Added badge image path validation and debug logs
+    
     const badgeImagePath = process.env.BADGE_IMAGE_PATH;
     console.log("Badge image path:", badgeImagePath);
     if (!badgeImagePath) {
