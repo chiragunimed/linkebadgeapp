@@ -233,7 +233,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
         specificContent: {
           "com.linkedin.ugc.ShareContent": {
             shareCommentary: {
-              text: "Attending Panorama India is a reminder of how culture can unite and inspire. Kudos to the Directors and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian ties. A cultural masterpiece! \ud83d\ude4c\ud83c\udf1f #CelebrateCulture #PanoramaIndia"
+              text: "Attending Brampton Boat Race is a reminder of how culture can unite and inspire through sports. Kudos to the Organizing Committee and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian bond. A cultural masterpiece! \ud83d\ude4c\ud83c\udf1f #CelebrateCulture #BoatRace2025"
             },
             shareMediaCategory: "IMAGE",
             media: [
@@ -257,7 +257,7 @@ app.get("/auth/linkedin/callback", async (req, res) => {
 
     //res.send(`<h2>\u2705 Posted. - Thank you for sharing ! - Team Panorama</h2><img src="/output_${profile.sub}.png" width="300">`);
     //or use this one 
-    res.send(`<h2 style="font-size: 14px; font-weight: bold;">\u2705 Posted. - Thank you for sharing! - Team Panorama</h2><img src="/output_${profile.sub}.png" width="300">`);
+    res.send(`<h2 style="font-size: 14px; font-weight: bold;">\u2705 Posted. - Thank you for sharing! </h2><img src="/output_${profile.sub}.png" width="300">`);
 
   } catch (err) {
     if (err.response) {
