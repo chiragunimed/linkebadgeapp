@@ -233,7 +233,10 @@ app.get("/auth/linkedin/callback", async (req, res) => {
         specificContent: {
           "com.linkedin.ugc.ShareContent": {
             shareCommentary: {
-              text: "Attending Brampton Boat Race is a reminder of how culture can unite and inspire through sports. Kudos to the Organizing Committee and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian bond. A cultural masterpiece! \ud83d\ude4c\ud83c\udf1f #CelebrateCulture #BoatRace2025"
+              text: "Attending INDIA DAY with Panorama is a reminder of how culture can unite and inspire. Kudos to the Organising Committee and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian bond. A cultural masterpiece!  #CelebrateCulture #PanoramaINDIA2025"
+              // or paste here from mailchimp as you want it , upload. this file on server onrender ,redeploy zzzz right now PANORAMA Is ON
+              //text :" "
+             // text: "Attending Brampton Boat Race is a reminder of how culture can unite and inspire through sports. Kudos to the Organizing Committee and entire team for their relentless commitment to fostering understanding, celebrating heritage, and strengthening Indo-Canadian bond. A cultural masterpiece! \ud83d\ude4c\ud83c\udf1f #CelebrateCulture #BoatRace2025"
             },
             shareMediaCategory: "IMAGE",
             media: [
