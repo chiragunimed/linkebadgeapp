@@ -4,7 +4,7 @@ const axios = require("axios");
 const fs = require("fs");
 
 async function overlayProfilePicture(profileUrl, email) {
-  const baseImagePath = path.join(__dirname, "../myevent/public/base_badge.png");
+  const baseImagePath = path.join(__dirname, "../myevent/base_badge.png");
   const outputImagePath = path.join(__dirname, `../myevent/public/output_${email}.png`);
 
   const response = await axios.get(profileUrl, { responseType: "arraybuffer" });
