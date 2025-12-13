@@ -5,50 +5,107 @@ const fs = require("fs");
 
 async function overlayProfilePicture(profileUrl, email) {
   try {
+    /* ------------------------------
+       1. ENV VALIDATION
+    ------------------------------ */
     if (!process.env.BADGE_IMAGE_PATH) {
       throw new Error("BADGE_IMAGE_PATH is not defined in .env");
     }
 
+    if (!profileUrl) {
+      throw new Error("Profile image URL is missing");
+    }
+
+    /* ------------------------------
+       2. OUTPUT DIRECTORY
+    ------------------------------ */
     const outputDir = path.join(__dirname, "../public");
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const outputImagePath = path.join(outputDir, `output_${email}.png`);
+    const safeEmail = email.replace(/[^a-zA-Z0-9]/g, "_");
+    const outputImagePath = path.join(
+      outputDir,
+      `output_${safeEmail}.png`
+    );
 
-    let badgeBuffer;
+    /* ------------------------------
+       3. LOAD BADGE IMAGE
+    ------------------------------ */
     const badgePath = process.env.BADGE_IMAGE_PATH;
+    let badgeBuffer;
 
-    // ✅ ONLY treat as URL if it truly starts with http
     if (badgePath.startsWith("http://") || badgePath.startsWith("https://")) {
-      const response = await axios.get(badgePath, { responseType: "arraybuffer" });
-      badgeBuffer = Buffer.from(response.data);
+      console.log("📥 Fetching badge from URL:", badgePath);
+
+      const badgeResponse = await axios.get(badgePath, {
+        responseType: "arraybuffer",
+        timeout: 10000
+      });
+
+      badgeBuffer = Buffer.from(badgeResponse.data);
     } else {
-      const resolvedPath = path.resolve(__dirname, badgePath);
-      if (!fs.existsSync(resolvedPath)) {
-        throw new Error(`Badge image file not found at path: ${resolvedPath}`);
+      const resolvedBadgePath = path.resolve(__dirname, badgePath);
+
+      if (!fs.existsSync(resolvedBadgePath)) {
+        throw new Error(`Badge image not found at: ${resolvedBadgePath}`);
       }
-      badgeBuffer = fs.readFileSync(resolvedPath);
+
+      console.log("📁 Using local badge:", resolvedBadgePath);
+      badgeBuffer = fs.readFileSync(resolvedBadgePath);
     }
 
-    // Fetch profile image
-    const profileResponse = await axios.get(profileUrl, { responseType: "arraybuffer" });
+    /* ------------------------------
+       4. FETCH PROFILE IMAGE
+    ------------------------------ */
+    console.log("📥 Fetching LinkedIn profile image");
+
+    const profileResponse = await axios.get(profileUrl, {
+      responseType: "arraybuffer",
+      timeout: 10000,
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+
+    if (!profileResponse.data || profileResponse.data.length < 1000) {
+      throw new Error("Profile image download failed or returned empty data");
+    }
+
     const profileBuffer = Buffer.from(profileResponse.data);
 
+    /* ------------------------------
+       5. RESIZE PROFILE (UNCHANGED)
+    ------------------------------ */
     const profileResized = await sharp(profileBuffer)
-      .resize(150, 150)
+      .resize(150, 150)                 // ❗ unchanged
+      .ensureAlpha()                    // ✅ CRITICAL FIX
       .png()
       .toBuffer();
 
+    /* ------------------------------
+       6. COMPOSITE (UNCHANGED)
+    ------------------------------ */
     await sharp(badgeBuffer)
-      .composite([{ input: profileResized, top: 50, left: 50 }])
+      .ensureAlpha()
+      .composite([
+        {
+          input: profileResized,
+          top: 50,                      // ❗ unchanged
+          left: 50,                     // ❗ unchanged
+          blend: "over"
+        }
+      ])
       .png()
       .toFile(outputImagePath);
 
+    console.log("✅ Badge generated:", outputImagePath);
     return outputImagePath;
 
   } catch (err) {
-    console.error("❌ overlayProfilePicture failed:", err.message);
+    console.error("❌ overlayProfilePicture failed");
+    console.error(err.message);
     throw err;
   }
 }
