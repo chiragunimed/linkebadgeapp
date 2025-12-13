@@ -5,7 +5,7 @@ const fs = require("fs");
 
 /**
  * Overlay a LinkedIn profile picture onto a badge.
- * Fully debugged and logs all paths and metadata.
+ * Logs every path, saves profile for debug, and outputs folder contents.
  * @param {string} profileUrl - LinkedIn profile image URL
  * @param {string} email - Used for output filename
  * @returns {string} - Path to generated badge
@@ -59,7 +59,7 @@ async function overlayProfilePicture(profileUrl, email) {
 
     const profileBuffer = Buffer.from(profileRes.data);
 
-    // 🔴 Save profile image for debugging
+    // 🔴 Save profile image for debug
     fs.writeFileSync(debugProfilePath, profileBuffer);
     console.log("✔ Profile image saved for debug at:", debugProfilePath);
 
@@ -70,7 +70,7 @@ async function overlayProfilePicture(profileUrl, email) {
       throw new Error("Invalid LinkedIn image (too small or blocked)");
     }
 
-    // ------------------ RESIZE PROFILE IMAGE (unchanged) ------------------
+    // ------------------ RESIZE PROFILE IMAGE (unchanged dimensions) ------------------
     const profileResized = await sharp(profileBuffer)
       .resize(150, 150) // unchanged dimensions
       .png()
@@ -91,6 +91,11 @@ async function overlayProfilePicture(profileUrl, email) {
       .toFile(outputImagePath);
 
     console.log("✅ Badge successfully created at:", outputImagePath);
+
+    // ------------------ LOG OUTPUT DIRECTORY CONTENTS ------------------
+    const outputFiles = fs.readdirSync(outputDir);
+    console.log("📂 Current output folder contents:", outputFiles);
+
     return outputImagePath;
 
   } catch (err) {
