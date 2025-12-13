@@ -5,97 +5,96 @@ const fs = require("fs");
 
 async function overlayProfilePicture(profileUrl, email) {
   try {
-    /* ------------------------------
-       1. ENV VALIDATION
-    ------------------------------ */
     if (!process.env.BADGE_IMAGE_PATH) {
       throw new Error("BADGE_IMAGE_PATH is not defined in .env");
     }
 
     if (!profileUrl) {
-      throw new Error("Profile image URL is missing");
+      throw new Error("Profile URL is missing");
     }
 
-    /* ------------------------------
-       2. OUTPUT DIRECTORY
+    /* -----------------------------
+       OUTPUT SETUP
     ------------------------------ */
     const outputDir = path.join(__dirname, "../public");
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const safeEmail = email.replace(/[^a-zA-Z0-9]/g, "_");
     const outputImagePath = path.join(
       outputDir,
-      `output_${safeEmail}.png`
+      `output_${email.replace(/[^a-zA-Z0-9]/g, "_")}.png`
     );
 
-    /* ------------------------------
-       3. LOAD BADGE IMAGE
+    /* -----------------------------
+       LOAD BADGE IMAGE
     ------------------------------ */
-    const badgePath = process.env.BADGE_IMAGE_PATH;
     let badgeBuffer;
+    const badgePath = process.env.BADGE_IMAGE_PATH.trim();
 
     if (badgePath.startsWith("http://") || badgePath.startsWith("https://")) {
-      console.log("📥 Fetching badge from URL:", badgePath);
-
+      console.log("⬇️ Downloading badge from URL");
       const badgeResponse = await axios.get(badgePath, {
         responseType: "arraybuffer",
-        timeout: 10000
       });
-
       badgeBuffer = Buffer.from(badgeResponse.data);
     } else {
       const resolvedBadgePath = path.resolve(__dirname, badgePath);
+      console.log("📂 Using local badge:", resolvedBadgePath);
 
       if (!fs.existsSync(resolvedBadgePath)) {
-        throw new Error(`Badge image not found at: ${resolvedBadgePath}`);
+        throw new Error(`Badge image not found: ${resolvedBadgePath}`);
       }
 
-      console.log("📁 Using local badge:", resolvedBadgePath);
       badgeBuffer = fs.readFileSync(resolvedBadgePath);
     }
 
-    /* ------------------------------
-       4. FETCH PROFILE IMAGE
+    /* -----------------------------
+       DOWNLOAD LINKEDIN IMAGE
+       (THIS IS WHERE IT WAS FAILING)
     ------------------------------ */
-    console.log("📥 Fetching LinkedIn profile image");
+    console.log("⬇️ Downloading LinkedIn profile image");
 
     const profileResponse = await axios.get(profileUrl, {
       responseType: "arraybuffer",
-      timeout: 10000,
       headers: {
-        "User-Agent": "Mozilla/5.0"
-      }
+        "User-Agent": "Mozilla/5.0", // 🔑 REQUIRED for LinkedIn
+      },
     });
-
-    if (!profileResponse.data || profileResponse.data.length < 1000) {
-      throw new Error("Profile image download failed or returned empty data");
-    }
 
     const profileBuffer = Buffer.from(profileResponse.data);
 
-    /* ------------------------------
-       5. RESIZE PROFILE (UNCHANGED)
+    // 🔍 HARD VALIDATION
+    if (profileBuffer.length < 5000) {
+      throw new Error("Profile image download failed or returned invalid data");
+    }
+
+    // Optional debug (remove later)
+    fs.writeFileSync(
+      path.join(outputDir, "debug_profile_download.png"),
+      profileBuffer
+    );
+
+    /* -----------------------------
+       RESIZE PROFILE (DO NOT CHANGE SIZE)
     ------------------------------ */
     const profileResized = await sharp(profileBuffer)
-      .resize(150, 150)                 // ❗ unchanged
-      .ensureAlpha()                    // ✅ CRITICAL FIX
+      .resize(150, 150) // ❗ unchanged
+      .ensureAlpha()    // 🔑 REQUIRED
       .png()
       .toBuffer();
 
-    /* ------------------------------
-       6. COMPOSITE (UNCHANGED)
+    /* -----------------------------
+       COMPOSITE
     ------------------------------ */
     await sharp(badgeBuffer)
-      .ensureAlpha()
+      .ensureAlpha() // 🔑 REQUIRED
       .composite([
         {
           input: profileResized,
-          top: 50,                      // ❗ unchanged
-          left: 50,                     // ❗ unchanged
-          blend: "over"
-        }
+          top: 50,   // ❗ unchanged
+          left: 50,  // ❗ unchanged
+        },
       ])
       .png()
       .toFile(outputImagePath);
@@ -104,7 +103,7 @@ async function overlayProfilePicture(profileUrl, email) {
     return outputImagePath;
 
   } catch (err) {
-    console.error("❌ overlayProfilePicture failed");
+    console.error("❌ overlayProfilePicture FAILED");
     console.error(err.message);
     throw err;
   }
