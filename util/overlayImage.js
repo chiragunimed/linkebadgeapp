@@ -3,25 +3,49 @@ const path = require("path");
 const axios = require("axios");
 const fs = require("fs");
 
+/**
+ * Overlay a LinkedIn profile picture onto the base badge.
+ * @param {string} profileUrl - URL of the LinkedIn profile picture
+ * @param {string} email - Email used to generate the output badge filename
+ * @returns {string} - Full path of the generated badge
+ */
 async function overlayProfilePicture(profileUrl, email) {
-  const baseImagePath = path.join(__dirname, "../base_badge.png");
-  const outputImagePath = path.join(__dirname, `../public/output_${email}.png`);
+  try {
+    // Path to the base badge template inside MYEVENT folder
+    const baseImagePath = path.join(__dirname, "../MYEVENT/badge.png");
 
-  const response = await axios.get(profileUrl, { responseType: "arraybuffer" });
-  const profileBuffer = Buffer.from(response.data);
+    // Path to store the final badge output
+    const outputImagePath = path.join(__dirname, "../MYEVENT/public/output_" + email + ".png");
 
-  const profileResized = await sharp(profileBuffer)
-    .resize(150, 150)
-    .circle()
-    .png()
-    .toBuffer();
+    // Ensure the output directory exists
+    const outputDir = path.dirname(outputImagePath);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
 
-  await sharp(baseImagePath)
-    .composite([{ input: profileResized, top: 50, left: 50 }]) // adjust coordinates
-    .png()
-    .toFile(outputImagePath);
+    // Download the LinkedIn profile picture
+    const response = await axios.get(profileUrl, { responseType: "arraybuffer" });
+    const profileBuffer = Buffer.from(response.data);
 
-  return outputImagePath;
+    // Resize and make the profile picture circular
+    const profileResized = await sharp(profileBuffer)
+      .resize(150, 150) // adjust size as needed
+      .png()
+      .toBuffer();
+
+    // Overlay the profile picture onto the base badge
+    await sharp(baseImagePath)
+      .composite([{ input: profileResized, top: 50, left: 50 }]) // adjust coordinates as needed
+      .png()
+      .toFile(outputImagePath);
+
+    console.log("Badge successfully created at:", outputImagePath);
+    return outputImagePath;
+
+  } catch (error) {
+    console.error("Error generating badge:", error);
+    throw error;
+  }
 }
 
 module.exports = overlayProfilePicture;
