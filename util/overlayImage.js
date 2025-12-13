@@ -3,49 +3,40 @@ const path = require("path");
 const axios = require("axios");
 const fs = require("fs");
 
-/**
- * Overlay a LinkedIn profile picture onto the base badge.
- * @param {string} profileUrl - URL of the LinkedIn profile picture
- * @param {string} email - Email used to generate the output badge filename
- * @returns {string} - Full path of the generated badge
- */
 async function overlayProfilePicture(profileUrl, email) {
-  try {
-    // Path to the base badge template inside MYEVENT folder
-    const baseImagePath = path.join(__dirname, "../MYEVENT/badge.png");
+  const badgeUrl = process.env.BADGE_IMAGE_PATH; // public URL
+  const outputImagePath = path.join(__dirname, `../public/output_${email}.png`);
 
-    // Path to store the final badge output
-    const outputImagePath = path.join(__dirname, "../MYEVENT/public/output_" + email + ".png");
+  let baseBuffer;
 
-    // Ensure the output directory exists
-    const outputDir = path.dirname(outputImagePath);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    // Download the LinkedIn profile picture
-    const response = await axios.get(profileUrl, { responseType: "arraybuffer" });
-    const profileBuffer = Buffer.from(response.data);
-
-    // Resize and make the profile picture circular
-    const profileResized = await sharp(profileBuffer)
-      .resize(150, 150) // adjust size as needed
-      .png()
-      .toBuffer();
-
-    // Overlay the profile picture onto the base badge
-    await sharp(baseImagePath)
-      .composite([{ input: profileResized, top: 50, left: 50 }]) // adjust coordinates as needed
-      .png()
-      .toFile(outputImagePath);
-
-    console.log("Badge successfully created at:", outputImagePath);
-    return outputImagePath;
-
-  } catch (error) {
-    console.error("Error generating badge:", error);
-    throw error;
+  // If badgeUrl starts with http, fetch it
+  if (badgeUrl.startsWith("http")) {
+    const badgeResponse = await axios.get(badgeUrl, { responseType: "arraybuffer" });
+    baseBuffer = Buffer.from(badgeResponse.data);
+  } else {
+    // fallback for local development
+    const localPath = path.join(__dirname, "../public/base_badge.png");
+    baseBuffer = fs.readFileSync(localPath);
   }
+
+  // Fetch profile picture
+  const profileResponse = await axios.get(profileUrl, { responseType: "arraybuffer" });
+  const profileBuffer = Buffer.from(profileResponse.data);
+
+  // Resize and circle crop profile
+  const profileResized = await sharp(profileBuffer)
+    .resize(150, 150)
+    .circle()
+    .png()
+    .toBuffer();
+
+  // Composite profile onto badge
+  await sharp(baseBuffer)
+    .composite([{ input: profileResized, top: 50, left: 50 }]) // adjust coordinates
+    .png()
+    .toFile(outputImagePath);
+
+  return outputImagePath; // local path to generated badge
 }
 
 module.exports = overlayProfilePicture;
